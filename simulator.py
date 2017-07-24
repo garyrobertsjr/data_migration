@@ -4,12 +4,16 @@ from scheduler import InOrder, Greedy
 from disk import Disk
 from graph_tool.all import *
 from numpy.random import randint
+import random
 import argparse
 
 def main():
     ''' Parse CLI args and invoke simulator '''
     parser = argparse.ArgumentParser()
     parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'random', 'greedy'])
+    cv_g = parser.add_mutually_exclusive_group()
+    cv_g.add_argument('--static_cv', help='Specifiy cv', type=int)
+    cv_g.add_argument('--rand_cv', help='Specifiy max value for random cv', type=int)
     graph_g = parser.add_mutually_exclusive_group()
     graph_g.add_argument('--random', help='Random graph generation', type=int)
     graph_g.add_argument('--static', metavar='S', help='Use static graph', choices=['331', '391'])
@@ -36,7 +40,12 @@ def main():
 
         ''' Populate disk list '''
         for i in range(args.random):
-            disks.append(Disk(2,0))
+            if(args.rand_cv):
+                disks.append(Disk(random.randint(1,args.rand_cv),0))
+            elif args.static_cv:
+                disks.append(Disk(args.static_cv,0))
+            else:
+                disks.append(Disk(1,0))
 
     elif(args.static):
         disks = [Disk(1,0), Disk(1,0), Disk(1,0)]
