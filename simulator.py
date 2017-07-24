@@ -79,13 +79,7 @@ def main():
 
 
     ''' Convert Graph edges to list format '''
-    for e in g.edges():
-        edges.append((int(e.source()), int(e.target())))
- 
-    ''' Greedy: arrange edges according to dv_cv(refactor to func in sched)'''
-    if args.scheduler == 'greedy':
-        degrees = sched.dv_cv(disks, g)
-        edges = [edge for dvcv, edge in sorted(zip(degrees, edges))]
+    edges = sched.gen_edges(disks, g)
 
     rounds = 0
     while edges != []:

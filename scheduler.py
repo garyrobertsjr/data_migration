@@ -10,8 +10,21 @@ class Scheduler(ABC):
         ''' Run one round of the algorithm '''
         pass
 
+    @abstractmethod
+    def gen_edges(self, disks, graph):
+        ''' Create list of edges '''
+        pass
+
 class InOrder(Scheduler):
     ''' Perform transmission between disk in order present in list '''
+    def gen_edges(self, disks, graph):
+        edges = []
+
+        for e in g.edges():
+            edges.append((int(e.source()), int(e.target())))
+
+        return edges
+
     def do_work(self, disks, edges):
         working = []
         for i, e in enumerate(edges):
@@ -36,6 +49,17 @@ class InOrder(Scheduler):
 
 class Greedy(InOrder):
     ''' Performs transmission between disks using greedy alg to generate list of edges for InOrder '''
+    def gen_edges(self, disks, graph):
+        degrees = self.dv_cv(disks, graph)
+        edges = []
+
+        for e in graph.edges():
+            edges.append((int(e.source()), int(e.target())))
+
+        edges = [edge for dvcv, edge in sorted(zip(degrees, edges))]
+
+        return edges
+
     def dv_cv(self, disks, graph):
         ''' Return degree/cv of disks for current round '''
         degrees = graph.get_out_degrees(graph.get_vertices())
