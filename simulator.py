@@ -34,13 +34,13 @@ def main():
     if(args.random):
         ''' Random graph generation '''
         g.add_vertex(args.random)
-        for s,t in zip(randint(0,args.random,args.random), \
-		randint(0,args.random,args.random)):
+        for s,t in zip(randint(0,args.random,args.random*5), \
+		randint(0,args.random,args.random*5)):
             g.add_edge(g.vertex(s),g.vertex(t))
 
         ''' Populate disk list '''
         for i in range(args.random):
-            if(args.rand_cv):
+            if args.rand_cv:
                 disks.append(Disk(random.randint(1,args.rand_cv),0))
             elif args.static_cv:
                 disks.append(Disk(args.static_cv,0))
