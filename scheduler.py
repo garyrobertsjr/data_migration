@@ -51,17 +51,15 @@ class Greedy(InOrder):
     ''' Performs transmission between disks using greedy alg to generate list of edges for InOrder '''
     def gen_edges(self, disks, graph):
         degrees = self.dv_cv(disks, graph)
-        edges = []
 
-        for e in graph.edges():
-            edges.append((int(e.source()), int(e.target())))
+        # Parse edges from graph-tool
+        edges = [(int(e.source()), int(e.target())) for e in graph.edges()]  
 
+        # Couple dvcv with disk object
         ranks = list(zip(degrees, disks))
-        weighted = []
 
-        # Add dvcv scores of disk involved in each edge
-        for edge in edges:
-            weighted.append((ranks[edge[0]][0] + ranks[edge[1]][0], edge))
+        # Compute dvcv weight of each edge
+        weighted = [(ranks[edge[0]][0] + ranks[edge[1]][0], edge) for edge in edges]
 
         # Return list of edges of descending accumlative dvcv score
         return [edge for weight, edge in sorted(weighted, key=lambda value: value[0])]
