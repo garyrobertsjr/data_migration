@@ -15,8 +15,8 @@ def main():
     cv_g.add_argument('--static_cv', help='Specifiy cv', type=int)
     cv_g.add_argument('--rand_cv', help='Specifiy max value for random cv', type=int)
     graph_g = parser.add_mutually_exclusive_group()
-    graph_g.add_argument('--random', help='Random graph generation', type=int)
-    graph_g.add_argument('--static', metavar='S', help='Use static graph', choices=['331', '391'])
+    graph_g.add_argument('--random_edges', help='Random graph generation', type=int)
+    graph_g.add_argument('--demo', metavar='S', help='Use demo graph', choices=['331', '391'])
     args = parser.parse_args()
 
     if args.scheduler == 'inorder':
@@ -31,15 +31,15 @@ def main():
     edges = []
     g = Graph(directed=False)
 
-    if(args.random):
+    if(args.random_edges):
         ''' Random graph generation '''
-        g.add_vertex(args.random)
-        for s,t in zip(randint(0,args.random,args.random*5), \
-		randint(0,args.random,args.random*5)):
+        g.add_vertex(args.random_edges)
+        for s,t in zip(randint(0,args.random_edges,args.random_edges*5), \
+		randint(0,args.random_edges,args.random_edges*5)):
             g.add_edge(g.vertex(s),g.vertex(t))
 
         ''' Populate disk list '''
-        for i in range(args.random):
+        for i in range(args.random_edges):
             if args.rand_cv:
                 disks.append(Disk(random.randint(1,args.rand_cv),0))
             elif args.static_cv:

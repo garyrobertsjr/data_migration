@@ -56,9 +56,15 @@ class Greedy(InOrder):
         for e in graph.edges():
             edges.append((int(e.source()), int(e.target())))
 
-        edges = [edge for dvcv, edge in sorted(zip(degrees, edges))]
+        ranks = list(zip(degrees, disks))
+        weighted = []
 
-        return edges
+        # Add dvcv scores of disk involved in each edge
+        for edge in edges:
+            weighted.append((ranks[edge[0]][0] + ranks[edge[1]][0], edge))
+
+        # Return list of edges of descending accumlative dvcv score
+        return [edge for weight, edge in sorted(weighted, key=lambda value: value[0])]
 
     def dv_cv(self, disks, graph):
         ''' Return degree/cv of disks for current round '''
