@@ -17,25 +17,20 @@ class Scheduler(ABC):
 
 class InOrder(Scheduler):
     ''' Perform transmission between disk in order present in list '''
-    def gen_edges(self, disks, graph):
-        edges = []
+    def gen_edges(self, graph):
+        return [e for e in graph.edges()]
 
-        for e in g.edges():
-            edges.append((int(e.source()), int(e.target())))
-
-        return edges
-
-    def do_work(self, disks, edges):
+    def do_work(self, graph, queue):
         working = []
-        for i, e in enumerate(edges):
-            if disks[e[0]].avail > 0 and disks[e[1]].avail > 0:
+        for e in queue:
+            if e[0].avail > 0 and e[1].avail > 0:
 
                 # Aqcuire cv resources
-                disks[e[0]].acquire()
-                disks[e[1]].acquire()
+                e[0].acquire()
+                e[1].acquire()
 
                 # Remove work
-                edges.pop(i)
+                graph.remove_edge(e[0],e[1])
 
                 # Assign disk to active pool
                 working.append(e[0])
@@ -45,30 +40,21 @@ class InOrder(Scheduler):
 
         # Free resources
         for w in working:
-            disks[w].free()
+            w.free()
 
 class Greedy(InOrder):
     ''' Performs transmission between disks using greedy alg to generate list of edges for InOrder '''
-    def gen_edges(self, disks, graph):
-        degrees = self.dv_cv(disks, graph)
-
-        # Parse edges from graph-tool
-        edges = [(int(e.source()), int(e.target())) for e in graph.edges()]  
-
-        # Couple dvcv with disk object
-        ranks = list(zip(degrees, disks))
-
+    def gen_edges(self, graph):
+        degrees = self.dv_cv(graph) 
+        
         # Compute dvcv weight of each edge
-        weighted = [(ranks[edge[0]][0] + ranks[edge[1]][0], edge) for edge in edges]
+        weighted = [(degrees[edge[0]] + degrees[edge[1]], edge) for edge in graph.edges()]
 
         # Return list of edges of descending accumlative dvcv score
         return [edge for weight, edge in sorted(weighted, key=lambda value: value[0])]
 
-    def dv_cv(self, disks, graph):
+    def dv_cv(self, graph):
         ''' Return degree/cv of disks for current round '''
-        degrees = graph.get_out_degrees(graph.get_vertices())
+        degrees = graph.degree()
 
-        for i, d in enumerate(disks):
-            degrees[i] = ceil(degrees[i]/d.cv)
-
-        return degrees
+        return {d:ceil(degrees[d]/d.cv) for d in degrees}

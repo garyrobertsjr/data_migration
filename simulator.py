@@ -2,7 +2,8 @@
 ''' Simulator.py '''
 from scheduler import InOrder, Greedy
 from disk import Disk
-from graph_tool.all import *
+import networkx as nx
+import matplotlib.pyplot as plt
 from numpy.random import randint
 import random
 import argparse
@@ -29,15 +30,10 @@ def main():
 
     disks = []
     edges = []
-    g = Graph(directed=False)
+
+    g = nx.MultiGraph()
 
     if(args.random_edges):
-        ''' Random graph generation '''
-        g.add_vertex(args.random_edges)
-        for s,t in zip(randint(0,args.random_edges,args.random_edges*5), \
-		randint(0,args.random_edges,args.random_edges*5)):
-            g.add_edge(g.vertex(s),g.vertex(t))
-
         ''' Populate disk list '''
         for i in range(args.random_edges):
             if args.rand_cv:
@@ -47,45 +43,26 @@ def main():
             else:
                 disks.append(Disk(1,0))
 
+        g.add_nodes_from(disks)
+
+        ''' Random graph generation '''
+        for s,t in zip(randint(0,args.random_edges,args.random_edges*5), \
+		                randint(0,args.random_edges,args.random_edges*5)):
+            g.add_edge(disks[s],disks[t])
+
     elif(args.static):
-        disks = [Disk(1,0), Disk(1,0), Disk(1,0)]
-
-        if args.static == '331':
-            v1 = g.add_vertex()
-            v2 = g.add_vertex()
-            v3 = g.add_vertex()
-    
-            g.add_edge(v1, v2)
-            g.add_edge(v1, v3)
-            g.add_edge(v2, v3)
-
-        elif args.static == '391':
-            v1 = g.add_vertex()
-            v2 = g.add_vertex()
-            v3 = g.add_vertex() 
-            g.add_edge(v1, v2)
-            g.add_edge(v1, v2)
-            g.add_edge(v1, v2)
-            g.add_edge(v1, v3)
-            g.add_edge(v1, v3)
-            g.add_edge(v1, v3)
-            g.add_edge(v2, v3)
-            g.add_edge(v2, v3)
-            g.add_edge(v2, v3)
-           
-
-    graph_draw(g, vertex_text=g.vertex_index, vertex_font_size=18,
-               output_size=(1000,1000), output="test.png")
+        pass
 
 
-    ''' Convert Graph edges to list format '''
-    edges = sched.gen_edges(disks, g)
+    nx.draw_random(g)
+    plt.savefig("graph.png")
 
     rounds = 0
-    while edges != []:
+    while g.edges():
         print("ROUND " + str(rounds + 1))
-        sched.do_work(disks, edges)
-        rounds += 1
+        q = sched.gen_edges(g)
+        sched.do_work(g, q)
+        rounds += 1 
 
 if __name__ == "__main__":
     main()
