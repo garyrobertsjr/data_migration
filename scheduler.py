@@ -1,6 +1,7 @@
 ''' Scheduler.py '''
 from abc import ABC, abstractmethod
 from math import ceil
+from disk import Disk
 
 class Scheduler(ABC):
     ''' Abstract class for implementing scheduling algorithms '''
@@ -14,6 +15,20 @@ class Scheduler(ABC):
     def gen_edges(self, disks, graph):
         ''' Create list of edges '''
         pass
+
+    def split_cv(self, graph):
+        ''' Split nodes into d.cv subnodes with identical edges '''
+        for d in graph.nodes():
+            if d.cv > 1:
+                edges = graph.edges(d)
+                print(edges)
+                for i in range(1,d.cv):
+                    new_d = Disk(1,0)
+                    new_edges = [(new_d, e[1]) for e in edges]
+
+                    graph.add_node(new_d)
+                    graph.add_edges_from(new_edges)
+
 
 class InOrder(Scheduler):
     ''' Perform transmission between disk in order present in list '''
