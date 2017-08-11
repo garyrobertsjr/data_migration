@@ -1,6 +1,6 @@
 #!/bin/env python
 ''' Simulator.py '''
-from scheduler import InOrder, Greedy
+from scheduler import InOrder, Greedy, Color
 from disk import Disk
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -11,7 +11,7 @@ import argparse
 def main():
     ''' Parse CLI args and invoke simulator '''
     parser = argparse.ArgumentParser()
-    parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'random', 'greedy'])
+    parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'random', 'greedy', 'color'])
     cv_g = parser.add_mutually_exclusive_group()
     cv_g.add_argument('--static_cv', help='Specifiy cv', type=int)
     cv_g.add_argument('--rand_cv', help='Specifiy max value for random cv', type=int)
@@ -27,9 +27,10 @@ def main():
         return
     elif args.scheduler == 'greedy':
         sched = Greedy()
+    elif args.scheduler == 'color':
+        sched = Color()
 
     disks = []
-    edges = []
 
     g = nx.MultiGraph()
 
@@ -52,7 +53,6 @@ def main():
 
     elif(args.static):
         pass
-
 
     nx.draw_random(g)
     plt.savefig("graph.png")

@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 from math import ceil
 from disk import Disk
+import networkx as nx
 
 class Scheduler(ABC):
     ''' Abstract class for implementing scheduling algorithms '''
@@ -73,3 +74,17 @@ class Greedy(InOrder):
         degrees = graph.degree()
 
         return {d:ceil(degrees[d]/d.cv) for d in degrees}
+
+class Color(InOrder):
+    ''' Temp scheduler to test coloring '''
+    def gen_edges(self, graph):
+        self.split_cv(graph)
+        d = nx.coloring.greedy_color(graph, strategy=nx.coloring.strategy_largest_first)
+        
+        # Use node coloring alg to deduce edge color or import external vizings?
+
+        print(d)
+        graph.clear()
+
+    def do_work(self, graph, queue):
+        pass
