@@ -18,3 +18,6 @@ class Disk():
         ''' Semaphore for CV: Free resource '''
         self.avail += 1
 
+    def __le__(self, true):
+        ''' LE overridden for sorting (nx line_graph compat) '''
+        return True
