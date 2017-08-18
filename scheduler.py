@@ -17,20 +17,6 @@ class Scheduler(ABC):
         ''' Create list of edges '''
         pass
 
-    def split_cv(self, graph):
-        ''' Split nodes into d.cv subnodes with identical edges '''
-        for d in graph.nodes():
-            if d.cv > 1:
-                edges = graph.edges(d)
-                print(edges)
-                for i in range(1,d.cv):
-                    new_d = Disk(1,0)
-                    new_edges = [(new_d, e[1]) for e in edges]
-
-                    graph.add_node(new_d)
-                    graph.add_edges_from(new_edges)
-
-
 class InOrder(Scheduler):
     ''' Perform transmission between disk in order present in list '''
     def gen_edges(self, graph):
@@ -67,7 +53,7 @@ class Greedy(InOrder):
         weighted = [(degrees[edge[0]] + degrees[edge[1]], edge) for edge in graph.edges()]
 
         # Return list of edges of descending accumlative dvcv score
-        return [edge for weight, edge in sorted(weighted, key=lambda value: value[0])]
+        return [edge for _, edge in sorted(weighted, key=lambda value: value[0])]
 
     def dv_cv(self, graph):
         ''' Return degree/cv of disks for current round '''
@@ -75,16 +61,29 @@ class Greedy(InOrder):
 
         return {d:ceil(degrees[d]/d.cv) for d in degrees}
 
-class Color(InOrder):
+class Split_CV(InOrder):
     ''' Temp scheduler to test coloring '''
     def gen_edges(self, graph):
-        self.split_cv(graph)
-        d = nx.coloring.greedy_color(graph, strategy=nx.coloring.strategy_largest_first)
+        self.split(graph)
+
+        # Generate Line graph
+        l = nx.line_graph(graph)
+
+        # Find edge coloring (nonoptimal, greedy)
+        d = nx.coloring.greedy_color(l, strategy=nx.coloring.strategy_largest_first)
         
-        # Use node coloring alg to deduce edge color or import external vizings?
+        # Return edges in order
+        return [(d1, d2) for d1, d2, _ in d.keys()]
 
-        print(d)
-        graph.clear()
+    def split(self, graph):
+        ''' Split nodes into d.cv subnodes with identical edges '''
+        for d in graph.nodes():
+            if d.cv > 1:
+                edges = graph.edges(d)
+                print(edges)
+                for i in range(1,d.cv):
+                    new_d = Disk(1,0)
+                    new_edges = [(new_d, e[1]) for e in edges]
 
-    def do_work(self, graph, queue):
-        pass
+                    graph.add_node(new_d)
+                    graph.add_edges_from(new_edges)
