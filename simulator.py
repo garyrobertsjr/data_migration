@@ -5,6 +5,7 @@ from disk import Disk
 import networkx as nx
 import matplotlib.pyplot as plt
 from numpy.random import randint
+from math import floor
 import random
 import argparse
 
@@ -14,7 +15,7 @@ def main():
     parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'random', 'greedy', 'split'])
     cv_g = parser.add_mutually_exclusive_group()
     cv_g.add_argument('--static_cv', help='Specifiy cv', type=int)
-    cv_g.add_argument('--rand_cv', help='Specifiy max value for random cv', type=int)
+    cv_g.add_argument('--rand_cv', help='Specifiy max value for a random, even cv', type=int)
     graph_g = parser.add_mutually_exclusive_group()
     graph_g.add_argument('--random', help='Random graph generation', type=int)
     graph_g.add_argument('--file', metavar='F', help='Import graph from pickle', type=argparse.FileType('rb'))
@@ -38,7 +39,8 @@ def main():
         ''' Populate disk list '''
         for i in range(args.random):
             if args.rand_cv:
-                disks.append(Disk(random.randint(1,args.rand_cv),0))
+                # Generate random cv and ensure it is even
+                disks.append(Disk(random.randint(1,floor(args.rand_cv/2)*2),0))
             elif args.static_cv:
                 disks.append(Disk(args.static_cv,0))
             else:
