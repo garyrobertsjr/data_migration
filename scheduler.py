@@ -61,7 +61,7 @@ class Greedy(InOrder):
 
         return {d:ceil(degrees[d]/d.cv) for d in degrees}
 
-class Split_CV(InOrder):
+class SplitCV(InOrder):
     ''' Temp scheduler to test coloring '''
     def gen_edges(self, graph):
         self.split(graph)
@@ -69,21 +69,26 @@ class Split_CV(InOrder):
         # Generate Line graph
         l = nx.line_graph(graph)
 
-        # Find edge coloring (nonoptimal, greedy)
+        # Find edge coloring of line graph (nonoptimal, greedy)
         d = nx.coloring.greedy_color(l, strategy=nx.coloring.strategy_largest_first)
         
-        # Return edges in order
-        return [(d1, d2) for d1, d2, _ in d.keys()]
+        # Return edges for round
+        return [(d1, d2) for d1, d2, c in d.keys() if c == 0]
 
     def split(self, graph):
         ''' Split nodes into d.cv subnodes with identical edges '''
         for d in graph.nodes():
             if d.cv > 1:
                 edges = graph.edges(d)
-                print(edges)
+                
+                # Create d.cv number of clones with  a cv of 1
                 for i in range(1,d.cv):
                     new_d = Disk(1,0)
                     new_edges = [(new_d, e[1]) for e in edges]
 
+                    # Append cv clones
                     graph.add_node(new_d)
                     graph.add_edges_from(new_edges)
+
+                # Remove original
+                graph.remove_node(d)
