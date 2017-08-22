@@ -1,6 +1,6 @@
 #!/bin/env python
 ''' Simulator.py '''
-from scheduler import InOrder, Greedy, Split_CV
+from scheduler import InOrder, Greedy, SplitCV
 from disk import Disk
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -28,13 +28,13 @@ def main():
     elif args.scheduler == 'greedy':
         sched = Greedy()
     elif args.scheduler == 'split':
-        sched = Split_CV()
+        sched = SplitCV()
 
     disks = []
 
     g = nx.MultiGraph()
 
-    if(args.random):
+    if args.random:
         ''' Populate disk list '''
         for i in range(args.random):
             if args.rand_cv:
@@ -55,16 +55,16 @@ def main():
         # TODO: Naming schema
         nx.write_gpickle(g, "output.gpickle")
 
-    elif(args.file):
+    elif args.file:
         # Import graph pickle
         g = nx.read_gpickle(args.file)
     
     nx.draw_random(g)
     plt.savefig("graph.png")
 
-    rounds = 0
+    rounds = 1
     while g.edges():
-        print("ROUND " + str(rounds + 1))
+        print("ROUND " + str(rounds))
         q = sched.gen_edges(g)
         sched.do_work(g, q)
         rounds += 1 
