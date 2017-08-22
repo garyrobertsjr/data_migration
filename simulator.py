@@ -6,8 +6,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from numpy.random import randint
 from math import floor
-import random
-import argparse
+import datetime, random, argparse, os
 
 def main():
     ''' Parse CLI args and invoke simulator '''
@@ -32,7 +31,8 @@ def main():
         sched = SplitCV()
 
     disks = []
-
+    timestamp = datetime.datetime.now().isoformat()
+    os.makedirs(timestamp)
     g = nx.MultiGraph()
 
     if args.random:
@@ -55,21 +55,23 @@ def main():
 
         # Write graph pickle to file. 
         # TODO: Naming schema
-        nx.write_gpickle(g, "output.gpickle")
+        nx.write_gpickle(g, timestamp+"/network.gpickle")
 
     elif args.file:
         # Import graph pickle
         g = nx.read_gpickle(args.file)
     
-    nx.draw_random(g)
-    plt.savefig("graph.png")
-
     rounds = 1
     while g.edges():
         print("ROUND " + str(rounds))
+        
+        plt.clf()
+        nx.draw_random(g)
+        plt.savefig(timestamp+"/round" + str(rounds) + ".png")
+
         q = sched.gen_edges(g)
         sched.do_work(g, q)
-        rounds += 1 
+        rounds += 1
 
 if __name__ == "__main__":
     main()
