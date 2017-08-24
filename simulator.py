@@ -2,10 +2,10 @@
 ''' Simulator.py '''
 from scheduler import InOrder, Greedy, SplitCV
 from disk import Disk
-import networkx as nx
-import matplotlib.pyplot as plt
 from numpy.random import randint
 from math import floor
+import networkx as nx
+import matplotlib.pyplot as plt
 import datetime, random, argparse, os
 
 def main():
