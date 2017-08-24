@@ -1,7 +1,7 @@
 ''' Scheduler.py '''
 from abc import ABC, abstractmethod
 from math import ceil
-from disk import Disk
+from disk import Disk, Alias
 import networkx as nx
 
 class Scheduler(ABC):
@@ -25,7 +25,7 @@ class InOrder(Scheduler):
     def do_work(self, graph, queue):
         working = []
         for e in queue:
-            if e[0].avail > 0 and e[1].avail > 0:
+            if e[0].avail > 0 and e[1].avail > 0 and graph.has_edge(e[0], e[1]):
 
                 # Aqcuire cv resources
                 e[0].acquire()
@@ -64,31 +64,49 @@ class Greedy(InOrder):
 class SplitCV(InOrder):
     ''' Temp scheduler to test coloring '''
     def gen_edges(self, graph):
-        self.split(graph)
+        a_graph = self.split(graph)
 
         # Generate Line graph
-        l = nx.line_graph(graph)
-
+        l = nx.line_graph(a_graph)
+        a_graph.clear()
+        
         # Find edge coloring of line graph (nonoptimal, greedy)
         d = nx.coloring.greedy_color(l, strategy=nx.coloring.strategy_largest_first)
-        
+
         # Return edges for round
-        return [(d1, d2) for d1, d2, c in d.keys() if c == 0]
+        return [(e[0].org, e[1].org) for e in d.keys() if d[e] == 0]
+
+    def alias_graph(self, graph):
+        a = nx.MultiGraph()
+        for d in graph.nodes():
+            # Create alias disk
+            disk_alias = Alias(d)
+
+            # Copy edges from original
+            edges = graph.edges(d)
+            alias_edges =[(disk_alias, Alias(e[1])) for e in edges]
+            
+            # Add to alias graph
+            a.add_node(disk_alias)
+            a.add_edges_from(alias_edges)
+
+        return a
 
     def split(self, graph):
-        ''' Split nodes into d.cv subnodes with identical edges '''
-        for d in graph.nodes():
-            if d.cv > 1:
-                edges = graph.edges(d)
+        ''' Split nodes into d.cv alias nodes with identical edges '''
+        a_graph = self.alias_graph(graph)
+        for d in a_graph.nodes():
+            if d.org.cv > 1:
+                edges = a_graph.edges(d)
                 
                 # Create d.cv number of clones with  a cv of 1
-                for i in range(1,d.cv):
-                    new_d = Disk(1,0)
+                for i in range(1,d.org.cv-1):
+                    new_d = Alias(d.org)
                     new_edges = [(new_d, e[1]) for e in edges]
 
                     # Append cv clones
-                    graph.add_node(new_d)
-                    graph.add_edges_from(new_edges)
+                    a_graph.add_node(new_d)
+                    a_graph.add_edges_from(new_edges)
 
-                # Remove original
-                graph.remove_node(d)
+        
+        return a_graph
