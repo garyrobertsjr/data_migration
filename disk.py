@@ -21,3 +21,11 @@ class Disk():
     def __le__(self, item):
         ''' LE overridden for sorting (nx line_graph compat) '''
         return True
+
+class Alias():
+    ''' Disk alias object '''
+    def __init__(self, org):
+        self.org = org
+    def __le__(self, item):
+        ''' LE overridden for sorting (nx line_graph compat) '''
+        return True
