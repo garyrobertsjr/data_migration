@@ -8,6 +8,21 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import datetime, random, argparse, os
 
+
+def generate_disks(n, rand_cv, static_cv):
+    ''' Populate disk list '''
+    disks = []
+    for i in range(n):
+        if rand_cv:
+            # Generate random cv and ensure it is even
+            disks.append(Disk(random.randint(1,rand_cv),0))
+        elif static_cv:
+            disks.append(Disk(static_cv,0))
+        else:
+            disks.append(Disk(1,0))
+
+    return disks
+
 def main():
     ''' Parse CLI args and invoke simulator '''
     parser = argparse.ArgumentParser()
@@ -17,6 +32,7 @@ def main():
     cv_g.add_argument('--rand_cv', help='Specifiy max value for a random, even cv', type=int)
     graph_g = parser.add_mutually_exclusive_group()
     graph_g.add_argument('--random', help='Random graph generation', type=int)
+    graph_g.add_argument('--regular', help='Regular graph generation', type=int)
     graph_g.add_argument('--file', metavar='F', help='Import graph from pickle', type=argparse.FileType('rb'))
     args = parser.parse_args()
 
@@ -37,25 +53,32 @@ def main():
 
     if args.random:
         ''' Populate disk list '''
-        for i in range(args.random):
-            if args.rand_cv:
-                # Generate random cv and ensure it is even
-                disks.append(Disk(random.randint(1,floor(args.rand_cv/2)*2),0))
-            elif args.static_cv:
-                disks.append(Disk(args.static_cv,0))
-            else:
-                disks.append(Disk(1,0))
+        disks = generate_disks(args.random, args.rand_cv, args.static_cv)
 
         g.add_nodes_from(disks)
 
         ''' Random graph generation '''
-        for s,t in zip(randint(0,args.random,args.random*5), \
-		                randint(0,args.random,args.random)):
+        for s,t in zip(randint(0,args.random,args.random**2), \
+		                randint(0,args.random,args.random**2)):
             g.add_edge(disks[s],disks[t])
 
         # Write graph pickle to file. 
         # TODO: Naming schema
         nx.write_gpickle(g, timestamp+"/network.gpickle")
+
+        nx.write_gpickle(g, "network.gpickle")
+
+
+    elif args.regular:
+        ''' Populate disk list '''
+        disks = generate_disks(args.regular, args.rand_cv, args.static_cv)
+
+        # Generate random graph skeleton
+        g = nx.random_regular_graph(args.regular-1, args.regular)
+
+        # Remap nodes to disks
+        disk_map = {i:d for i,d in enumerate(disks)}
+        g = nx.relabel_nodes(g, disk_map)
 
     elif args.file:
         # Import graph pickle
