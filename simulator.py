@@ -77,12 +77,15 @@ def main():
         disks = generate_disks(args.regular, args.rand_cv, args.static_cv)
 
         # Generate random graph skeleton
-        g = nx.random_regular_graph(args.regular-1, args.regular)
+        r = nx.random_regular_graph(args.regular-1, args.regular)
 
         # Remap nodes to disks
         disk_map = {i:d for i,d in enumerate(disks)}
-        g = nx.relabel_nodes(g, disk_map)
+        r = nx.relabel_nodes(r, disk_map)
 
+        g = nx.MultiGraph(r)
+        r.clear()
+        
         # Write graph pickle to file. 
         # TODO: Naming schema
         nx.write_gpickle(g, timestamp+"/network.gpickle")
@@ -97,12 +100,10 @@ def main():
     while g.edges():
         print("ROUND " + str(rounds))
         
-        '''
         plt.clf()
         nx.draw_networkx(g)
         plt.savefig(timestamp+"/round" + str(rounds) + ".png")
-        '''
-        
+                
         q = sched.gen_edges(g)
         sched.do_work(g, q)
         rounds += 1
