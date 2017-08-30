@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from math import ceil
 from disk import Disk, Alias
 import networkx as nx
+import matplotlib.pyplot as plt
 
 class Scheduler(ABC):
     ''' Abstract class for implementing scheduling algorithms '''
@@ -63,21 +64,28 @@ class Greedy(InOrder):
 
 class SplitCV(InOrder):
     ''' Temp scheduler to test coloring '''
-    def gen_edges(self, graph):
-        a_graph = self.split(graph)
+    def __init__(self):
+        self.a_graph = None
+        self.l_graph = None
+        self.d = None
 
-        # Generate Line graph
-        l = nx.line_graph(a_graph)
-        a_graph.clear()
-        
-        # Find edge coloring of line graph (nonoptimal, greedy)
-        d = nx.coloring.greedy_color(l, strategy=nx.coloring.strategy_largest_first)
+    def gen_edges(self, graph):
+        if not self.a_graph:
+            # Generate alias graph
+            a_graph = self.split(graph)
+
+            # Generate Line Graph
+            self.l_graph = nx.line_graph(a_graph)
+
+            # Find edge coloring of line graph (nonoptimal, greedy)
+            self.d = nx.coloring.greedy_color(self.l_graph, strategy=nx.coloring.strategy_largest_first)
 
         # Return edges for round
-        return [(e[0].org, e[1].org) for e in d.keys() if d[e] == 0]
+        return [(e[0].org, e[1].org) for e in self.d.keys()]
 
     def alias_graph(self, graph):
         a = nx.MultiGraph()
+
         for d in graph.nodes():
             # Create alias disk
             disk_alias = Alias(d)
@@ -94,10 +102,11 @@ class SplitCV(InOrder):
 
     def split(self, graph):
         ''' Split nodes into d.cv alias nodes with identical edges '''
-        a_graph = self.alias_graph(graph)
-        for d in a_graph.nodes():
+        self.a_graph = self.alias_graph(graph)
+
+        for d in self.a_graph.nodes():
             if d.org.cv > 1:
-                edges = a_graph.edges(d)
+                edges = self.a_graph.edges(d)
                 
                 # Create d.cv number of clones with  a cv of 1
                 for i in range(1,d.org.cv-1):
@@ -105,8 +114,60 @@ class SplitCV(InOrder):
                     new_edges = [(new_d, e[1]) for e in edges]
 
                     # Append cv clones
-                    a_graph.add_node(new_d)
-                    a_graph.add_edges_from(new_edges)
+                    self.a_graph.add_node(new_d)
+                    self.a_graph.add_edges_from(new_edges)
 
         
-        return a_graph
+        return self.a_graph
+
+
+class Bipartite(Scheduler):
+    ''' Chadi algorithm scheduler '''
+    def do_work(self, graph, queue):
+        graph.clear()
+
+    def gen_edges(self, graph):
+        ''' Build bipartite graph '''
+        # normalize
+        self.normalize(graph)
+
+        # euler cycle
+        ec = nx.eulerian_circuit(graph)
+        print('EC: ' + str(ec))
+
+        # bipartite graph set 1 = in; set 2 = out
+        b = nx.Graph()
+
+
+        # TODO: Remap edges to disk alias for second nodes for bipartite functionality
+        
+        # v_in nodes
+        b.add_nodes_from(graph.nodes(), bipartite=0)
+
+        # v_out nodes 
+        b.add_nodes_from(graph.nodes(), bipartite=1)
+
+        # Edges
+        for e in graph.edges():
+            b.add_edge(e[0], e[1])
+
+        # OUTPUT FOR TESTING
+        plt.clf()
+        nx.draw_networkx(b)
+        plt.savefig("bipartite.png")
+
+    def max_d(self, graph):
+        ''' Return max cv d prime '''
+        degree = graph.degree()
+        degrees = [(d,ceil(degree[d]/d.cv)) for d in degree]
+        
+        return max(degrees, key=lambda item:item[1])[1]
+
+    def normalize(self, graph):
+        ''' Add self loops to normalize cv d prime '''
+        cvd = self.max_d(graph)
+        print('CVD: ' + str(cvd))
+
+        for d in graph.nodes():
+            while graph.degree(d) < cvd:
+                graph.add_edge(d, d)
