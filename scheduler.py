@@ -133,7 +133,6 @@ class Bipartite(Scheduler):
 
         # euler cycle
         ec = nx.eulerian_circuit(graph)
-        print('EC: ' + str(ec))
 
         # bipartite graph set 1 = in; set 2 = out
         b = nx.Graph()
@@ -165,9 +164,20 @@ class Bipartite(Scheduler):
 
     def normalize(self, graph):
         ''' Add self loops to normalize cv d prime '''
-        cvd = self.max_d(graph)
-        print('CVD: ' + str(cvd))
+        delta_prime = self.max_d(graph)
 
-        for d in graph.nodes():
-            while graph.degree(d) < cvd:
+        spares = []
+        for d in graph.nodes():            
+            while graph.degree(d) < (delta_prime*d.cv)-1:
                 graph.add_edge(d, d)
+
+            # Identify nodes with odd degree
+            if graph.degree(d) == delta_prime*d.cv-1:
+                spares.append(d)
+
+        # Pair nodes with delta*cv - 1
+        while spares:
+            new_edge = spares[:2]
+            spares = spares[2:]
+
+            graph.add_edge(new_edge[0], new_edge[1])
