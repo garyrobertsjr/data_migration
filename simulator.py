@@ -1,6 +1,6 @@
 #!/bin/env python
 ''' Simulator.py '''
-from scheduler import InOrder, Greedy, SplitCV
+from scheduler import InOrder, Greedy, SplitCV, Bipartite
 from disk import Disk
 from numpy.random import randint
 from math import floor
@@ -26,7 +26,7 @@ def generate_disks(n, rand_cv, static_cv):
 def main():
     ''' Parse CLI args and invoke simulator '''
     parser = argparse.ArgumentParser()
-    parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'random', 'greedy', 'split'])
+    parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'random', 'greedy', 'split', 'bipartite'])
     cv_g = parser.add_mutually_exclusive_group()
     cv_g.add_argument('--static_cv', help='Specifiy cv', type=int)
     cv_g.add_argument('--rand_cv', help='Specifiy max value for a random, even cv', type=int)
@@ -45,6 +45,8 @@ def main():
         sched = Greedy()
     elif args.scheduler == 'split':
         sched = SplitCV()
+    elif args.scheduler == 'bipartite':
+        sched = Bipartite()
 
     disks = []
     timestamp = datetime.datetime.now().isoformat()
@@ -58,6 +60,7 @@ def main():
         g.add_nodes_from(disks)
 
         ''' Random graph generation '''
+        # TODO: Change to nx call w/ remap?
         for s,t in zip(randint(0,args.random,args.random**2), \
 		                randint(0,args.random,args.random**2)):
             g.add_edge(disks[s],disks[t])
@@ -80,6 +83,12 @@ def main():
         disk_map = {i:d for i,d in enumerate(disks)}
         g = nx.relabel_nodes(g, disk_map)
 
+        # Write graph pickle to file. 
+        # TODO: Naming schema
+        nx.write_gpickle(g, timestamp+"/network.gpickle")
+
+        nx.write_gpickle(g, "network.gpickle")
+    
     elif args.file:
         # Import graph pickle
         g = nx.read_gpickle(args.file)
@@ -88,13 +97,17 @@ def main():
     while g.edges():
         print("ROUND " + str(rounds))
         
+        '''
         plt.clf()
-        nx.draw_random(g)
+        nx.draw_networkx(g)
         plt.savefig(timestamp+"/round" + str(rounds) + ".png")
-
+        '''
+        
         q = sched.gen_edges(g)
         sched.do_work(g, q)
         rounds += 1
 
+    print(rounds-1)
+    
 if __name__ == "__main__":
     main()
