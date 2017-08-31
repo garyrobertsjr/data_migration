@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 from math import ceil
 from disk import Disk, Alias
+from networkx.algorithms.flow import edmonds_karp
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -28,18 +29,24 @@ class InOrder(Scheduler):
         for e in queue:
             if e[0].avail > 0 and e[1].avail > 0 and graph.has_edge(e[0], e[1]):
 
-                # Aqcuire cv resources
-                e[0].acquire()
-                e[1].acquire()
+                if e[0] != e[1]:
+                    # Aqcuire cv resources
+                    e[0].acquire()
+                    e[1].acquire()
 
-                # Remove work
-                graph.remove_edge(e[0],e[1])
+                    # Remove work
+                    graph.remove_edge(e[0],e[1])
 
-                # Assign disk to active pool
-                working.append(e[0])
-                working.append(e[1])
+                    # Assign disk to active pool
+                    working.append(e[0])
+                    working.append(e[1])
 
-                print("Disk" + str(e[0]) + " transferring to Disk" + str(e[1]))
+                    print("Disk" + str(e[0]) + " transferring to Disk" + str(e[1]))
+                else:
+                    e[0].acquire()
+                    graph.remove_edge(e[0],e[1])
+                    working.append(e[0])
+                    print("Disk" + str(e[0]) + " transferring to Disk" + str(e[1]))
 
         # Free resources
         for w in working:
@@ -60,7 +67,7 @@ class Greedy(InOrder):
         ''' Return degree/cv of disks for current round '''
         degrees = graph.degree()
 
-        return {d:ceil(degrees[d]/d.cv) for d in degrees}
+        return {d[0]:ceil(d[1]/d[0].cv) for d in degrees}
 
 class SplitCV(InOrder):
     ''' Temp scheduler to test coloring '''
@@ -121,44 +128,75 @@ class SplitCV(InOrder):
         return self.a_graph
 
 
-class Bipartite(Scheduler):
+class Bipartite(InOrder):
     ''' Chadi algorithm scheduler '''
-    def do_work(self, graph, queue):
-        graph.clear()
+    def __init__(self):
+        self.normalized = False
 
     def gen_edges(self, graph):
         ''' Build bipartite graph '''
+        
         # normalize
-        self.normalize(graph)
+        if not self.normalize:
+            self.normalize(graph)
+            self.normalized = True
 
         # euler cycle
         ec = nx.eulerian_circuit(graph)
 
-        # bipartite graph set 1 = in; set 2 = out
-        b = nx.Graph()
-
-
-        # TODO: Remap edges to disk alias for second nodes for bipartite functionality
-        
-        # v_in nodes
-        b.add_nodes_from(graph.nodes(), bipartite=0)
-
-        # v_out nodes 
-        b.add_nodes_from(graph.nodes(), bipartite=1)
-
-        # Edges
+        # Remove loops on graph
+        loops = []
         for e in graph.edges():
-            b.add_edge(e[0], e[1])
+            if e[0] == e[1]:
+                loops.append(e)
 
-        # OUTPUT FOR TESTING
-        plt.clf()
-        nx.draw_networkx(b)
-        plt.savefig("bipartite.png")
+        graph.remove_edges_from(loops)
+
+        # bipartite graph set 1 = in; set 2 = out
+        b = nx.Graph()  
+
+        # v-in aliases and edge mapping
+        v_out = [e[0] for e in graph.edges()]
+        v_in = {e[1]:Alias(e[1]) for e in graph.edges()}
+
+        for e in graph.edges():
+            b.add_edge(e[0], v_in[e[1]], capacity=1)
+
+        # Create s-node
+        b.add_node('s')
+        for d in v_in.items():
+            b.add_edge('s', d[1], capacity=ceil(d[1].org.cv/2))
+
+        # Create t-node
+        b.add_node('t')
+        for d in v_out:
+            b.add_edge('t', d, capacity=ceil(d.cv/2))
+
+        flow_value, flow_dict = nx.maximum_flow(b, 's', 't')
+        
+        flow = [(d[0],d2[0]) for d in flow_dict.items() for d2 in d[1].items() if d2[1] > 0 and d[0] != 's' and d2[0] != 't' and d[0] != 't' and d2[0] != 's']
+        b.remove_edges_from(flow)
+
+        # Reassociate aliases
+
+        active = []
+        for e in flow:
+            if e[0] != 's' and e[1] != 't' and e[0] != 't' and e[1] != 's':
+                if e[0].avail == None:
+                    active.append((e[0].org, e[1]))
+                elif e[1].avail == None:
+                    active.append((e[0],e[1].org))
+                elif e[0].avail == None and e[1].avail == None:
+                    active.append((e[0].org,e[1].org))
+                else:
+                    active.append(e)
+
+        return active
+
 
     def max_d(self, graph):
         ''' Return max cv d prime '''
-        degree = graph.degree()
-        degrees = [(d,ceil(degree[d]/d.cv)) for d in degree]
+        degrees = graph.degree()
         
         return max(degrees, key=lambda item:item[1])[1]
 
