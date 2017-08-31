@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import datetime, random, argparse, os
 
 
-def generate_disks(n, rand_cv, static_cv):
+def generate_disks(n, rand_cv, static_cv, even_cv):
     ''' Populate disk list '''
     disks = []
     for i in range(n):
@@ -18,6 +18,8 @@ def generate_disks(n, rand_cv, static_cv):
             disks.append(Disk(random.randint(1,rand_cv),0))
         elif static_cv:
             disks.append(Disk(static_cv,0))
+        elif even_cv:
+            disks.append(Disk(random.randint(1,floor(even_cv/2))*2,0))
         else:
             disks.append(Disk(1,0))
 
@@ -29,7 +31,8 @@ def main():
     parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'random', 'greedy', 'split', 'bipartite'])
     cv_g = parser.add_mutually_exclusive_group()
     cv_g.add_argument('--static_cv', help='Specifiy cv', type=int)
-    cv_g.add_argument('--rand_cv', help='Specifiy max value for a random, even cv', type=int)
+    cv_g.add_argument('--rand_cv', help='Specify max value for a random cv', type=int)
+    cv_g.add_argument('--even_cv', help='Specify max value for a random but even cv', type=int)
     graph_g = parser.add_mutually_exclusive_group()
     graph_g.add_argument('--random', help='Random graph generation', type=int)
     graph_g.add_argument('--regular', help='Regular graph generation', type=int)
@@ -55,7 +58,7 @@ def main():
 
     if args.random:
         ''' Populate disk list '''
-        disks = generate_disks(args.random, args.rand_cv, args.static_cv)
+        disks = generate_disks(args.random, args.rand_cv, args.static_cv, args.even_cv)
 
         g.add_nodes_from(disks)
 
@@ -74,7 +77,7 @@ def main():
 
     elif args.regular:
         ''' Populate disk list '''
-        disks = generate_disks(args.regular, args.rand_cv, args.static_cv)
+        disks = generate_disks(args.regular, args.rand_cv, args.static_cv, args.even_cv)
 
         # Generate random graph skeleton
         r = nx.random_regular_graph(args.regular-1, args.regular)
@@ -100,10 +103,12 @@ def main():
     while g.edges():
         print("ROUND " + str(rounds))
         
+        '''
         plt.clf()
         nx.draw_networkx(g)
         plt.savefig(timestamp+"/round" + str(rounds) + ".png")
-                
+        '''
+
         q = sched.gen_edges(g)
         sched.do_work(g, q)
         rounds += 1
