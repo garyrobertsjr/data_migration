@@ -111,6 +111,8 @@ class SplitCV(InOrder):
         ''' Split nodes into d.cv alias nodes with identical edges '''
         self.a_graph = self.alias_graph(graph)
 
+        new_disks = []
+        new_edges = []
         for d in self.a_graph.nodes():
             if d.org.cv > 1:
                 edges = self.a_graph.edges(d)
@@ -120,9 +122,9 @@ class SplitCV(InOrder):
                     new_d = Alias(d.org)
                     new_edges = [(new_d, e[1]) for e in edges]
 
-                    # Append cv clones
-                    self.a_graph.add_node(new_d)
-                    self.a_graph.add_edges_from(new_edges)
+        # Append cv clones
+        self.a_graph.add_nodes_from(new_disks)
+        self.a_graph.add_edges_from(new_edges)
 
         
         return self.a_graph
