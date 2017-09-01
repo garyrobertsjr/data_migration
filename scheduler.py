@@ -75,20 +75,24 @@ class SplitCV(InOrder):
         self.a_graph = None
         self.l_graph = None
         self.d = None
+        self.e_colors = None
 
     def gen_edges(self, graph):
         if not self.a_graph:
             # Generate alias graph
             a_graph = self.split(graph)
 
+            '''
             # Generate Line Graph
             self.l_graph = nx.line_graph(a_graph)
 
             # Find edge coloring of line graph (nonoptimal, greedy)
             self.d = nx.coloring.greedy_color(self.l_graph, strategy=nx.coloring.strategy_largest_first)
+            '''
+            self.e_colors = [e for e in self.greedy_color(a_graph).items()]
 
         # Return edges for round
-        return [(e[0].org, e[1].org) for e in self.d.keys()]
+        return [(e[0].org, e[1].org) for e, _ in sorted(self.e_colors, key=lambda item: item[1])]
 
     def alias_graph(self, graph):
         a = nx.MultiGraph()
@@ -128,6 +132,22 @@ class SplitCV(InOrder):
 
         
         return self.a_graph
+
+    def greedy_color(self, graph):
+        e_colors = {}
+        for d in graph.nodes():
+            #print("Coloring edges of : " + str(d))
+            color = 0
+            for e in graph.edges(d):
+                if e not in e_colors:
+                    e_colors[e] = color
+                    color += 1
+
+                    #print(" -> Edge: " + str(e) + ' Color: ' + str(e_colors[e]))
+
+
+        return e_colors
+                
 
 
 class Bipartite(InOrder):
