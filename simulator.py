@@ -64,9 +64,14 @@ def main():
 
         ''' Random graph generation '''
         # TODO: Change to nx call w/ remap?
-        for s,t in zip(randint(0,args.random,args.random**2), \
-		                randint(0,args.random,args.random**2)):
-            g.add_edge(disks[s],disks[t])
+        t = nx.dense_gnm_random_graph(args.random,random.randint(args.random,args.random**2))
+
+        # Remap nodes to disks
+        disk_map = {i:d for i,d in enumerate(disks)}
+        t = nx.relabel_nodes(t, disk_map)
+
+        g = nx.MultiGraph(t)
+        t.clear()
 
         # Write graph pickle to file. 
         # TODO: Naming schema
@@ -103,11 +108,9 @@ def main():
     while g.edges():
         print("ROUND " + str(rounds))
         
-        '''
         plt.clf()
         nx.draw_networkx(g)
         plt.savefig(timestamp+"/round" + str(rounds) + ".png")
-        '''
 
         q = sched.gen_edges(g)
         sched.do_work(g, q)
