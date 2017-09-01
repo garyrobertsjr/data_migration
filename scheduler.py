@@ -2,7 +2,6 @@
 from abc import ABC, abstractmethod
 from math import ceil
 from disk import Disk, Alias
-from networkx.algorithms.flow import edmonds_karp
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -28,7 +27,6 @@ class InOrder(Scheduler):
         working = []
         for e in queue:
             if e[0].avail > 0 and e[1].avail > 0 and graph.has_edge(e[0], e[1]):
-
                 if e[0] != e[1]:
                     # Aqcuire cv resources
                     e[0].acquire()
@@ -73,22 +71,12 @@ class SplitCV(InOrder):
     ''' Temp scheduler to test coloring '''
     def __init__(self):
         self.a_graph = None
-        self.l_graph = None
-        self.d = None
         self.e_colors = None
 
     def gen_edges(self, graph):
         if not self.a_graph:
             # Generate alias graph
             a_graph = self.split(graph)
-
-            '''
-            # Generate Line Graph
-            self.l_graph = nx.line_graph(a_graph)
-
-            # Find edge coloring of line graph (nonoptimal, greedy)
-            self.d = nx.coloring.greedy_color(self.l_graph, strategy=nx.coloring.strategy_largest_first)
-            '''
             self.e_colors = [e for e in self.greedy_color(a_graph).items()]
 
         # Return edges for round
@@ -135,7 +123,9 @@ class SplitCV(InOrder):
 
     def greedy_color(self, graph):
         e_colors = {}
+        d_colors = {}
         for d in graph.nodes():
+            adj = []
             #print("Coloring edges of : " + str(d))
             color = 0
             for e in graph.edges(d):
@@ -154,50 +144,59 @@ class Bipartite(InOrder):
     ''' Chadi algorithm scheduler '''
     def __init__(self):
         self.normalized = False
+        self.b = None
+
+    def do_work(self, graph, queue):
+        if not queue:
+            graph.clear()
+        else:
+            for e in queue:
+                print("Disk" + str(e[0]) + " transferring to Disk" + str(e[1]))
+
 
     def gen_edges(self, graph):
         ''' Build bipartite graph '''
         
         # normalize
-        if not self.normalize:
+        if not self.normalized:
             self.normalize(graph)
             self.normalized = True
 
-        # euler cycle
-        ec = nx.eulerian_circuit(graph)
+            # euler cycle
+            ec = nx.eulerian_circuit(graph)
 
-        # Remove loops on graph
-        loops = []
-        for e in graph.edges():
-            if e[0] == e[1]:
-                loops.append(e)
+            # Remove loops on graph
+            loops = []
+            for e in graph.edges():
+                if e[0] == e[1]:
+                    loops.append(e)
 
-        graph.remove_edges_from(loops)
+            graph.remove_edges_from(loops)
 
-        # bipartite graph set 1 = in; set 2 = out
-        b = nx.Graph()  
+            self.b = nx.Graph()  
 
-        # v-in aliases and edge mapping
-        v_out = [e[0] for e in graph.edges()]
-        v_in = {e[1]:Alias(e[1]) for e in graph.edges()}
+            # v-in aliases and edge mapping
+            v_out = [d for d in graph.nodes()]
+            v_in = {d:Alias(d) for d in graph.nodes()}
 
-        for e in graph.edges():
-            b.add_edge(e[0], v_in[e[1]], capacity=1)
+            ec = list(ec)
+            for e in ec:
+                self.b.add_edge(e[0], v_in[e[1]], capacity=1)
 
-        # Create s-node
-        b.add_node('s')
-        for d in v_in.items():
-            b.add_edge('s', d[1], capacity=ceil(d[1].org.cv/2))
+            # Create s-node
+            self.b.add_node('s')
+            for d in v_in.items():
+                self.b.add_edge('s', d[1], capacity=ceil(d[1].org.cv/2))
 
-        # Create t-node
-        b.add_node('t')
-        for d in v_out:
-            b.add_edge('t', d, capacity=ceil(d.cv/2))
+            # Create t-node
+            self.b.add_node('t')
+            for d in v_out:
+                self.b.add_edge('t', d, capacity=ceil(d.cv/2))
 
-        flow_value, flow_dict = nx.maximum_flow(b, 's', 't')
+        flow_value, flow_dict = nx.maximum_flow(self.b, 's', 't')
         
         flow = [(d[0],d2[0]) for d in flow_dict.items() for d2 in d[1].items() if d2[1] > 0 and d[0] != 's' and d2[0] != 't' and d[0] != 't' and d2[0] != 's']
-        b.remove_edges_from(flow)
+        self.b.remove_edges_from(flow)
 
         # Reassociate aliases
 
@@ -219,8 +218,9 @@ class Bipartite(InOrder):
     def max_d(self, graph):
         ''' Return max cv d prime '''
         degrees = graph.degree()
-        
-        return max(degrees, key=lambda item:item[1])[1]
+        degrees = [ceil(d[1]/d[0].cv) for d in degrees]
+
+        return max(degrees)
 
     def normalize(self, graph):
         ''' Add self loops to normalize cv d prime '''
