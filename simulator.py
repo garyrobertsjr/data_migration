@@ -1,6 +1,6 @@
 #!/bin/env python
 ''' Simulator.py '''
-from scheduler import InOrder, EdgeRanking, FlattenAndColor, Bipartite
+from scheduler import InOrder, EdgeRanking, FlattenAndColor, Bipartite, Greedy
 from disk import Disk
 from numpy.random import randint
 from math import floor
@@ -28,7 +28,7 @@ def generate_disks(n, rand_cv, static_cv, even_cv):
 def main():
     ''' Parse CLI args and invoke simulator '''
     parser = argparse.ArgumentParser()
-    parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'random', 'edge_ranking', 'flatten_and_color', 'bipartite'])
+    parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'random', 'edge_ranking', 'flatten_and_color', 'bipartite', 'greedy'])
     cv_g = parser.add_mutually_exclusive_group()
     cv_g.add_argument('--static_cv', help='Specifiy cv', type=int)
     cv_g.add_argument('--rand_cv', help='Specify max value for a random cv', type=int)
@@ -50,6 +50,8 @@ def main():
         sched = FlattenAndColor()
     elif args.scheduler == 'bipartite':
         sched = Bipartite()
+    elif args.scheduler == 'greedy':
+        sched = Greedy()
 
     disks = []
     timestamp = datetime.datetime.now().isoformat()
