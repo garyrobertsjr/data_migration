@@ -105,18 +105,22 @@ def main():
         g = nx.read_gpickle(args.file)
     
     rounds = 1
+    d_prime = sched.max_d(g)
+
     while g.edges():
         print("ROUND " + str(rounds))
         
+        '''
         plt.clf()
         nx.draw_networkx(g)
         plt.savefig(timestamp+"/round" + str(rounds) + ".png")
+        '''
 
         q = sched.gen_edges(g)
         sched.do_work(g, q)
         rounds += 1
 
-    print(rounds-1)
+    print(timestamp + ' ' + str(rounds-1) + ' ' + str(d_prime))
     
 if __name__ == "__main__":
     main()
