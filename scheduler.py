@@ -17,6 +17,13 @@ class Scheduler(ABC):
     def gen_edges(self, disks, graph):
         ''' Create list of edges '''
         pass
+        
+    def max_d(self, graph):
+        ''' Return max cv d prime '''
+        degrees = graph.degree()
+        degrees = [ceil(d[1]/d[0].cv) for d in degrees]
+
+        return max(degrees)
 
 class InOrder(Scheduler):
     ''' Perform transmission between disk in order present in list '''
@@ -213,14 +220,6 @@ class Bipartite(InOrder):
                     active.append(e)
 
         return active
-
-
-    def max_d(self, graph):
-        ''' Return max cv d prime '''
-        degrees = graph.degree()
-        degrees = [ceil(d[1]/d[0].cv) for d in degrees]
-
-        return max(degrees)
 
     def normalize(self, graph):
         ''' Add self loops to normalize cv d prime '''
