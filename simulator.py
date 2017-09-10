@@ -1,6 +1,6 @@
 #!/bin/env python
 ''' Simulator.py '''
-from scheduler import InOrder, Greedy, SplitCV, Bipartite
+from scheduler import InOrder, EdgeRanking, FlattenAndColor, Bipartite
 from disk import Disk
 from numpy.random import randint
 from math import floor
@@ -28,7 +28,7 @@ def generate_disks(n, rand_cv, static_cv, even_cv):
 def main():
     ''' Parse CLI args and invoke simulator '''
     parser = argparse.ArgumentParser()
-    parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'random', 'greedy', 'split', 'bipartite'])
+    parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'random', 'edge_ranking', 'flatten_and_color', 'bipartite'])
     cv_g = parser.add_mutually_exclusive_group()
     cv_g.add_argument('--static_cv', help='Specifiy cv', type=int)
     cv_g.add_argument('--rand_cv', help='Specify max value for a random cv', type=int)
@@ -44,10 +44,10 @@ def main():
     elif args.scheduler == 'random':
         print("Not yet implemented.")
         return
-    elif args.scheduler == 'greedy':
-        sched = Greedy()
-    elif args.scheduler == 'split':
-        sched = SplitCV()
+    elif args.scheduler == 'edge_ranking':
+        sched = EdgeRanking()
+    elif args.scheduler == 'flatten_and_color':
+        sched = FlattenAndColor()
     elif args.scheduler == 'bipartite':
         sched = Bipartite()
 

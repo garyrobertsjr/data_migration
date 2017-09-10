@@ -57,7 +57,7 @@ class InOrder(Scheduler):
         for w in working:
             w.free()
 
-class Greedy(InOrder):
+class EdgeRanking(InOrder):
     ''' Performs transmission between disks using greedy alg to generate list of edges for InOrder '''
     def gen_edges(self, graph):
         degrees = self.dv_cv(graph) 
@@ -74,7 +74,7 @@ class Greedy(InOrder):
 
         return {d[0]:ceil(d[1]/d[0].cv) for d in degrees}
 
-class SplitCV(InOrder):
+class FlattenAndColor(InOrder):
     ''' Temp scheduler to test coloring '''
     def __init__(self):
         self.a_graph = None
