@@ -212,20 +212,7 @@ class Bipartite(InOrder):
         self.b.remove_edges_from(flow)
 
         # Reassociate aliases
-
-        active = []
-        for e in flow:
-            if e[0] != 's' and e[1] != 't' and e[0] != 't' and e[1] != 's':
-                if e[0].avail == None:
-                    active.append((e[0].org, e[1]))
-                elif e[1].avail == None:
-                    active.append((e[0],e[1].org))
-                elif e[0].avail == None and e[1].avail == None:
-                    active.append((e[0].org,e[1].org))
-                else:
-                    active.append(e)
-
-        return active
+        return [(e[0].org, e[1].org) for e in flow]
 
     def normalize(self, graph):
         ''' Add self loops to normalize cv d prime '''
@@ -246,3 +233,17 @@ class Bipartite(InOrder):
             spares = spares[2:]
 
             graph.add_edge(new_edge[0], new_edge[1])
+
+class Greedy(FlattenAndColor):
+    def __init__(self):
+        self.a_graph = None
+    
+    def gen_edges(self, graph):
+        self.a_graph = self.split(graph)
+        
+        # Solve max matching to obtain round
+        queue = nx.maximal_matching(self.a_graph)
+
+        # Reassociate aliases
+        return [(e[0].org, e[1].org) for e in queue]
+        
