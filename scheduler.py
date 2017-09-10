@@ -166,6 +166,12 @@ class Bipartite(InOrder):
         
         # normalize
         if not self.normalized:
+            # Relax CV
+            for d in graph:
+                if d.cv%2:
+                    d.cv-=1
+                    d.avail-=1
+
             self.normalize(graph)
             self.normalized = True
 
