@@ -6,6 +6,7 @@ class Disk():
         self.cv = cv
         self.capacity = capacity
         self.avail = cv
+        self.org = self
 
     def acquire(self):
         ''' Semaphore for CV: Consume resource '''
