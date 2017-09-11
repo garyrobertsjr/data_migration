@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/bin/env python3
 ''' Simulator.py '''
 from scheduler import InOrder, EdgeRanking, FlattenAndColor, Bipartite, Greedy
 from disk import Disk
