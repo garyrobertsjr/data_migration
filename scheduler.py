@@ -237,13 +237,22 @@ class Bipartite(InOrder):
 class Greedy(FlattenAndColor):
     def __init__(self):
         self.a_graph = None
-    
+
+    def do_work(self, graph, queue):
+        if not queue:
+            graph.clear()
+        else:
+            for e in queue:
+                print("Disk" + str(e[0]) + " transferring to Disk" + str(e[1]))
+
     def gen_edges(self, graph):
-        self.a_graph = self.split(graph)
+        if not self.a_graph:
+            self.a_graph = self.split(graph)
         
         # Solve max matching to obtain round
         queue = nx.maximal_matching(self.a_graph)
-
+        self.a_graph.remove_edges_from(queue)
+        
         # Reassociate aliases
         return [(e[0].org, e[1].org) for e in queue]
         
