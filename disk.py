@@ -27,7 +27,6 @@ class Alias():
     ''' Disk alias object '''
     def __init__(self, org):
         self.org = org
-        self.avail = None
     def __le__(self, item):
         ''' LE overridden for sorting (nx line_graph compat) '''
         return True

@@ -28,7 +28,7 @@ def generate_disks(n, rand_cv, static_cv, even_cv):
 def main():
     ''' Parse CLI args and invoke simulator '''
     parser = argparse.ArgumentParser()
-    parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'random', 'edge_ranking', 'flatten_and_color', 'bipartite', 'greedy'])
+    parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'edge_ranking', 'flatten_and_color', 'bipartite', 'greedy'])
     cv_g = parser.add_mutually_exclusive_group()
     cv_g.add_argument('--static_cv', help='Specifiy cv', type=int)
     cv_g.add_argument('--rand_cv', help='Specify max value for a random cv', type=int)
@@ -41,9 +41,6 @@ def main():
 
     if args.scheduler == 'inorder':
         sched = InOrder()
-    elif args.scheduler == 'random':
-        print("Not yet implemented.")
-        return
     elif args.scheduler == 'edge_ranking':
         sched = EdgeRanking()
     elif args.scheduler == 'flatten_and_color':
@@ -53,10 +50,8 @@ def main():
     elif args.scheduler == 'greedy':
         sched = Greedy()
 
-    disks = []
-    timestamp = datetime.datetime.now().isoformat()
+    timestamp = datetime.datetime.now().isoformat().replace(':', '_')
     os.makedirs(timestamp)
-    g = nx.MultiGraph()
 
     if args.random:
         ''' Populate disk list '''
@@ -77,7 +72,7 @@ def main():
 
         # Write graph pickle to file. 
         # TODO: Naming schema
-        nx.write_gpickle(g, timestamp+"/network.gpickle")
+        nx.write_gpickle(g, timestamp + "/" + timestamp + ".gpickle")
 
         nx.write_gpickle(g, "network.gpickle")
 
@@ -98,7 +93,7 @@ def main():
         
         # Write graph pickle to file. 
         # TODO: Naming schema
-        nx.write_gpickle(g, timestamp+"/network.gpickle")
+        nx.write_gpickle(g, timestamp + "/" + timestamp + ".gpickle")
 
         nx.write_gpickle(g, "network.gpickle")
     
