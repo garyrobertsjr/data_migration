@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 
 class Scheduler(ABC):
     ''' Abstract class for implementing scheduling algorithms '''
-
     @abstractmethod
     def do_work(self, nodes, edges):
         ''' Run one round of the algorithm '''
@@ -83,8 +82,8 @@ class FlattenAndColor(InOrder):
     def gen_edges(self, graph):
         if not self.a_graph:
             # Generate alias graph
-            a_graph = self.split(graph)
-            self.e_colors = [e for e in self.greedy_color(a_graph).items()]
+            self.a_graph = self.split(graph)
+            self.e_colors = [e for e in self.greedy_color(self.a_graph).items()]
 
         # Return edges for round
         return [(e[0].org, e[1].org) for e, _ in sorted(self.e_colors, key=lambda item: item[1])]
@@ -140,12 +139,7 @@ class FlattenAndColor(InOrder):
                     e_colors[e] = color
                     color += 1
 
-                    #print(" -> Edge: " + str(e) + ' Color: ' + str(e_colors[e]))
-
-
         return e_colors
-                
-
 
 class Bipartite(InOrder):
     ''' Chadi algorithm scheduler '''
@@ -160,25 +154,23 @@ class Bipartite(InOrder):
             for e in queue:
                 print("Disk" + str(e[0]) + " transferring to Disk" + str(e[1]))
 
-
     def gen_edges(self, graph):
         ''' Build bipartite graph '''
-        
-        # normalize
+        # Normalize
         if not self.normalized:
             # Relax CV
             for d in graph:
                 if d.cv%2:
-                    d.cv-=1
-                    d.avail-=1
+                    d.cv -= 1
+                    d.avail -= 1
 
             self.normalize(graph)
             self.normalized = True
 
-            # euler cycle
+            # Euler cycle
             ec = nx.eulerian_circuit(graph)
 
-            # Remove loops on graph
+            # Remove self-loops on graph
             loops = []
             for e in graph.edges():
                 if e[0] == e[1]:
@@ -186,13 +178,14 @@ class Bipartite(InOrder):
 
             graph.remove_edges_from(loops)
 
-            self.b = nx.Graph()  
+            # Bipartite graph for flow problem, NOTE: cannot express MG characteristics
+            self.b = nx.Graph()
 
             # v-in aliases and edge mapping
             v_out = [d for d in graph.nodes()]
             v_in = {d:Alias(d) for d in graph.nodes()}
 
-            ec = list(ec)
+            # Added edges in euler cycle with capacity of 1
             for e in ec:
                 self.b.add_edge(e[0], v_in[e[1]], capacity=1)
 
@@ -206,12 +199,15 @@ class Bipartite(InOrder):
             for d in v_out:
                 self.b.add_edge('t', d, capacity=ceil(d.cv/2))
 
-        flow_value, flow_dict = nx.maximum_flow(self.b, 's', 't')
-        
-        flow = [(d[0],d2[0]) for d in flow_dict.items() for d2 in d[1].items() if d2[1] > 0 and d[0] != 's' and d2[0] != 't' and d[0] != 't' and d2[0] != 's']
+        # Ford-Fulkerson flow Returns: (flow_val, flow_dict)
+        _, flow_dict = nx.maximum_flow(self.b, 's', 't')
+
+        # Extract active edges and cull self loops and s/t nodes
+        flow = [(d[0], d2[0]) for d in flow_dict.items() for d2 in d[1].items() \
+                if d2[1] > 0 and d[0] != 's' and d2[0] != 't' and d[0] != 't' and d2[0] != 's']
         self.b.remove_edges_from(flow)
 
-        # Reassociate aliases
+        # Reassociate aliases and return queue
         return [(e[0].org, e[1].org) for e in flow]
 
     def normalize(self, graph):
@@ -235,6 +231,7 @@ class Bipartite(InOrder):
             graph.add_edge(new_edge[0], new_edge[1])
 
 class Greedy(FlattenAndColor):
+    ''' Split disk Cv and return maximal matching each round '''
     def __init__(self):
         self.a_graph = None
 
@@ -246,13 +243,16 @@ class Greedy(FlattenAndColor):
                 print("Disk" + str(e[0]) + " transferring to Disk" + str(e[1]))
 
     def gen_edges(self, graph):
+        # Split Cv and generate alias graph
         if not self.a_graph:
             self.a_graph = self.split(graph)
-        
+
         # Solve max matching to obtain round
         queue = nx.maximal_matching(self.a_graph)
+
+        # Cull active edges
         self.a_graph.remove_edges_from(queue)
-        
+
         # Reassociate aliases
         return [(e[0].org, e[1].org) for e in queue]
         
