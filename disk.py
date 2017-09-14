@@ -10,7 +10,7 @@ class Disk():
 
     def acquire(self):
         ''' Semaphore for CV: Consume resource '''
-        if self.avail > 0:
+        if self.avail:
             self.avail -= 1
             return True
         return False
