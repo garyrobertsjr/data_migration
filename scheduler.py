@@ -1,9 +1,13 @@
 ''' Scheduler.py '''
 from abc import ABC, abstractmethod
+from collections import Counter
 from math import ceil
-from disk import Disk, Alias
-import networkx as nx
+
 import matplotlib.pyplot as plt
+
+import networkx as nx
+from disk import Alias, Disk
+
 
 class Scheduler(ABC):
     ''' Abstract class for implementing scheduling algorithms '''
@@ -23,6 +27,21 @@ class Scheduler(ABC):
         degrees = [ceil(d[1]/d[0].cv) for d in degrees]
 
         return max(degrees)
+
+    def mg_split(self, graph):
+        # Count occurence of edges
+        occ = Counter(graph.edges())
+
+        for e in occ:
+            n = occ[e]
+            while n > 1:
+                # Create new edge using Alias of e[0]
+                graph.add_edge(Alias(e[0]), e[1])
+
+                # Remove old edge
+                graph.remove_edge(e[0],e[1])
+
+                n -= 1
 
 class InOrder(Scheduler):
     ''' Perform transmission between disk in order present in list '''
@@ -123,8 +142,7 @@ class FlattenAndColor(InOrder):
         # Append cv clones
         self.a_graph.add_nodes_from(new_disks)
         self.a_graph.add_edges_from(new_edges)
-
-        
+  
         return self.a_graph
 
     def greedy_color(self, graph):
@@ -132,7 +150,7 @@ class FlattenAndColor(InOrder):
         d_colors = {}
         for d in graph.nodes():
             adj = []
-            #print("Coloring edges of : " + str(d))
+
             color = 0
             for e in graph.edges(d):
                 if e not in e_colors:
@@ -157,6 +175,7 @@ class Bipartite(InOrder):
                     d.cv -= 1
                     d.avail -= 1
 
+            #self.mg_split(graph)
             self.normalize(graph)
             self.normalized = True
 
@@ -166,7 +185,7 @@ class Bipartite(InOrder):
             # Remove self-loops on graph
             loops = []
             for e in graph.edges():
-                if e[0] == e[1]:
+                if e[0].org is e[1].org:
                     loops.append(e)
 
             graph.remove_edges_from(loops)
@@ -179,8 +198,12 @@ class Bipartite(InOrder):
             v_in = {d:Alias(d) for d in graph.nodes()}
 
             # Added edges in euler cycle with capacity of 1
+            c=0
             for e in ec:
                 self.b.add_edge(e[0], v_in[e[1]], capacity=1)
+
+                if e[0].org is not e[1].org:
+                    c +=1 
 
             # Create s-node
             self.b.add_node('t')
@@ -197,11 +220,12 @@ class Bipartite(InOrder):
 
         # Extract active edges and cull self loops and s/t nodes
         flow = [(d[0], d2[0]) for d in flow_dict.items() for d2 in d[1].items() \
-                if d2[1] > 0 and d[0] != 's' and d2[0] != 't' and d[0] != 't' and d2[0] != 's']
+                if d2[1] > 0 and d[0] not in ['s','t'] and d2[0] not in ['s','t']]
+        
         self.b.remove_edges_from(flow)
 
         # Reassociate aliases and return queue
-        return [(e[0].org, e[1].org) for e in flow]
+        return [(e[0].org, e[1].org) for e in flow if e[0].org is not e[1].org]
 
     def normalize(self, graph):
         ''' Add self loops to normalize cv d prime '''
@@ -248,4 +272,3 @@ class Greedy(FlattenAndColor):
 
         # Reassociate aliases
         return [(e[0].org, e[1].org) for e in queue]
-        
