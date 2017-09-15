@@ -63,6 +63,14 @@ def main():
 
         ''' Random graph generation '''
         t = nx.dense_gnm_random_graph(args.random,random.randint(args.random,args.random**2))
+        
+        while not nx.is_connected(t):
+            t = nx.dense_gnm_random_graph(args.random,random.randint(args.random,args.random**2))
+
+        # Remove loops
+        for e in t.edges():
+            if e[0] is e[1]:
+                t.remove_edge(e[0], e[1])
 
         # Remap nodes to disks
         disk_map = {i:d for i,d in enumerate(disks)}
@@ -83,7 +91,8 @@ def main():
         disks = generate_disks(args.regular, args.rand_cv, args.static_cv, args.even_cv)
 
         # Generate random graph skeleton
-        r = nx.random_regular_graph(args.regular-1, args.regular)
+        #r = nx.random_regular_graph(args.regular-1, args.regular)
+        r = nx.complete_graph(args.regular, )
 
         # Remap nodes to disks
         disk_map = {i:d for i,d in enumerate(disks)}
