@@ -1,4 +1,4 @@
-#!/bin/env python3
+#!/bin/env python
 ''' Simulator.py '''
 from scheduler import InOrder, EdgeRanking, FlattenAndColor, Bipartite, Greedy
 from disk import Disk
@@ -29,6 +29,7 @@ def main():
     ''' Parse CLI args and invoke simulator '''
     parser = argparse.ArgumentParser()
     parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'edge_ranking', 'flatten_and_color', 'bipartite', 'greedy'])
+    parser.add_argument('--plot', help='Plot graph for each round.')
     cv_g = parser.add_mutually_exclusive_group()
     cv_g.add_argument('--static_cv', help='Specifiy cv', type=int)
     cv_g.add_argument('--rand_cv', help='Specify max value for a random cv', type=int)
@@ -55,12 +56,12 @@ def main():
 
     if args.random:
         ''' Populate disk list '''
+        g = nx.MultiGraph()
         disks = generate_disks(args.random, args.rand_cv, args.static_cv, args.even_cv)
 
         g.add_nodes_from(disks)
 
         ''' Random graph generation '''
-        # TODO: Change to nx call w/ remap?
         t = nx.dense_gnm_random_graph(args.random,random.randint(args.random,args.random**2))
 
         # Remap nodes to disks
@@ -107,11 +108,10 @@ def main():
     while g.edges():
         print("ROUND " + str(rounds))
         
-        '''
-        plt.clf()
-        nx.draw_networkx(g)
-        plt.savefig(timestamp+"/round" + str(rounds) + ".png")
-        '''
+        if args.plot:
+            plt.clf()
+            nx.draw_networkx(g)
+            plt.savefig(timestamp+"/round" + str(rounds) + ".png")
 
         q = sched.gen_edges(g)
         sched.do_work(g, q)
