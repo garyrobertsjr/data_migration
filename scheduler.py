@@ -147,13 +147,6 @@ class Bipartite(InOrder):
         self.normalized = False
         self.b = None
 
-    def do_work(self, graph, queue):
-        if not queue:
-            graph.clear()
-        else:
-            for e in queue:
-                print("Disk" + str(e[0]) + " transferring to Disk" + str(e[1]))
-
     def gen_edges(self, graph):
         ''' Build bipartite graph '''
         # Normalize
@@ -179,7 +172,7 @@ class Bipartite(InOrder):
             graph.remove_edges_from(loops)
 
             # Bipartite graph for flow problem, NOTE: cannot express MG characteristics
-            self.b = nx.Graph()
+            self.b = nx.DiGraph()
 
             # v-in aliases and edge mapping
             v_out = [d for d in graph.nodes()]
@@ -190,14 +183,14 @@ class Bipartite(InOrder):
                 self.b.add_edge(e[0], v_in[e[1]], capacity=1)
 
             # Create s-node
-            self.b.add_node('s')
+            self.b.add_node('t')
             for d in v_in.items():
-                self.b.add_edge('s', d[1], capacity=ceil(d[1].org.cv/2))
+                self.b.add_edge(d[1], 't', capacity=ceil(d[1].org.cv/2))
 
             # Create t-node
-            self.b.add_node('t')
+            self.b.add_node('s')
             for d in v_out:
-                self.b.add_edge('t', d, capacity=ceil(d.cv/2))
+                self.b.add_edge('s', d, capacity=ceil(d.cv/2))
 
         # Ford-Fulkerson flow Returns: (flow_val, flow_dict)
         _, flow_dict = nx.maximum_flow(self.b, 's', 't')
