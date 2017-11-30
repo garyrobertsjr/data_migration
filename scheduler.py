@@ -12,7 +12,7 @@ from disk import Alias, Disk
 class Scheduler(ABC):
     ''' Abstract class for implementing scheduling algorithms '''
     @abstractmethod
-    def do_work(self, nodes, edges):
+    def do_work(self, nodes, edges, verbose):
         ''' Run one round of the algorithm '''
         pass
 
@@ -28,27 +28,12 @@ class Scheduler(ABC):
 
         return max(degrees)
 
-    def mg_split(self, graph):
-        # Count occurence of edges
-        occ = Counter(graph.edges())
-
-        for e in occ:
-            n = occ[e]
-            while n > 1:
-                # Create new edge using Alias of e[0]
-                graph.add_edge(Alias(e[0]), e[1])
-
-                # Remove old edge
-                graph.remove_edge(e[0],e[1])
-
-                n -= 1
-
 class InOrder(Scheduler):
     ''' Perform transmission between disk in order present in list '''
     def gen_edges(self, graph):
         return [e for e in graph.edges()]
 
-    def do_work(self, graph, queue):
+    def do_work(self, graph, queue, verbose):
         working = []
         for e in queue:
             if e[0].avail > 0 and e[1].avail > 0 and graph.has_edge(e[0], e[1]):
@@ -64,11 +49,12 @@ class InOrder(Scheduler):
                     working.append(e[0])
                     working.append(e[1])
 
-                    print("Disk" + str(e[0]) + " transferring to Disk" + str(e[1]))
                 else:
                     e[0].acquire()
                     graph.remove_edge(e[0],e[1])
                     working.append(e[0])
+
+                if verbose:
                     print("Disk" + str(e[0]) + " transferring to Disk" + str(e[1]))
 
         # Free resources
@@ -130,18 +116,26 @@ class FlattenAndColor(InOrder):
 
         new_disks = []
         new_edges = []
+        originals = []
+
         for d in self.a_graph.nodes():
             if d.org.cv > 1:
                 edges = self.a_graph.edges(d)
+                originals += self.a_graph.edges(d)
                 
-                # Create d.cv number of clones with  a cv of 1
-                for i in range(1,d.org.cv-1):
-                    new_d = Alias(d.org)
-                    new_edges = [(new_d, e[1]) for e in edges]
+                # Create d.cv number of clones
+                clones = [Alias(d.org) for i in range(1,d.org.cv)]
+
+                # Distribute edges round-robin
+                for i, e in enumerate(edges):
+                    new_edges.append((clones[i%len(clones)],e[1]))
 
         # Append cv clones
         self.a_graph.add_nodes_from(new_disks)
         self.a_graph.add_edges_from(new_edges)
+
+        # Remove original edges for disks w/ cv > 1
+        self.a_graph.remove_edges_from(originals)
   
         return self.a_graph
 
@@ -252,12 +246,13 @@ class Greedy(FlattenAndColor):
     def __init__(self):
         self.a_graph = None
 
-    def do_work(self, graph, queue):
+    def do_work(self, graph, queue, verbose):
         if not queue:
             graph.clear()
         else:
-            for e in queue:
-                print("Disk" + str(e[0]) + " transferring to Disk" + str(e[1]))
+            if verbose:
+                for e in queue:
+                    print("Disk" + str(e[0]) + " transferring to Disk" + str(e[1]))
 
     def gen_edges(self, graph):
         # Split Cv and generate alias graph
@@ -272,3 +267,24 @@ class Greedy(FlattenAndColor):
 
         # Reassociate aliases
         return [(e[0].org, e[1].org) for e in queue]
+
+class Bypass(FlattenAndColor):
+    ''' Testing class for bypass node functions '''
+    def do_work(self, graph, queue, verbose):
+        print(self.cycle3(graph))
+        graph.clear()
+
+    def cycle3(self, graph):
+        ''' Returns list of disk sets w/ 3-cycles '''
+        cycles = []
+
+        for d1 in graph.nodes():
+            for d2 in graph.neighbors(d1):
+                for d3 in graph.neighbors(d2):
+                    if graph.has_edge(d1,d3) and d3 is not d1:
+                        cycle = {d1, d2, d3}
+                        
+                        if cycle not in cycles:
+                            cycles.append(cycle)
+
+        return cycles

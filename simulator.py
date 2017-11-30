@@ -1,6 +1,6 @@
 #!/bin/env python
 ''' Simulator.py '''
-from scheduler import InOrder, EdgeRanking, FlattenAndColor, Bipartite, Greedy
+from scheduler import InOrder, EdgeRanking, FlattenAndColor, Bipartite, Greedy, Bypass
 from disk import Disk
 from numpy.random import randint
 from math import floor
@@ -28,8 +28,9 @@ def generate_disks(n, rand_cv, static_cv, even_cv):
 def main():
     ''' Parse CLI args and invoke simulator '''
     parser = argparse.ArgumentParser()
-    parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'edge_ranking', 'flatten_and_color', 'bipartite', 'greedy'])
+    parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'edge_ranking', 'flatten_and_color', 'bipartite', 'greedy', 'bypass'])
     parser.add_argument('--plot', help='Plot graph for each round.')
+    parser.add_argument('-v', help='Print debug info', default=False, action='store_true')
     cv_g = parser.add_mutually_exclusive_group()
     cv_g.add_argument('--static_cv', help='Specifiy cv', type=int)
     cv_g.add_argument('--rand_cv', help='Specify max value for a random cv', type=int)
@@ -50,6 +51,8 @@ def main():
         sched = Bipartite()
     elif args.scheduler == 'greedy':
         sched = Greedy()
+    elif args.scheduler == 'bypass':
+        sched = Bypass()
 
     timestamp = datetime.datetime.now().isoformat().replace(':', '_')
     os.makedirs(timestamp)
@@ -115,7 +118,8 @@ def main():
     d_prime = sched.max_d(g)
 
     while g.edges():
-        print("ROUND " + str(rounds))
+        if args.v:
+            print("ROUND " + str(rounds))
         
         if args.plot:
             plt.clf()
@@ -123,7 +127,7 @@ def main():
             plt.savefig(timestamp+"/round" + str(rounds) + ".png")
 
         q = sched.gen_edges(g)
-        sched.do_work(g, q)
+        sched.do_work(g, q, args.v)
         rounds += 1
 
     print(timestamp + ' ' + str(rounds-1) + ' ' + str(d_prime))
