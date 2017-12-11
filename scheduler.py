@@ -6,11 +6,18 @@ from math import ceil
 import matplotlib.pyplot as plt
 
 import networkx as nx
-from disk import Alias, Disk
+from disk import Alias, Disk, Bypass
 
 
 class Scheduler(ABC):
     ''' Abstract class for implementing scheduling algorithms '''
+    def __init__(self, bypass):
+        self.bypass = bypass
+        self.num_bypass = 0
+        self.cycles = []
+        self.inactive_bypass_edges = []
+        self.active_bypass_edges = []
+
     @abstractmethod
     def do_work(self, nodes, edges, verbose):
         ''' Run one round of the algorithm '''
@@ -28,15 +35,62 @@ class Scheduler(ABC):
 
         return max(degrees)
 
+    def cycle3(self, graph):
+        ''' Returns list of disk sets w/ 3-cycles '''
+        self.cycles = []
+
+        for d1 in graph.nodes():
+            for d2 in graph.neighbors(d1):
+                for d3 in graph.neighbors(d2):
+                    if graph.has_edge(d1,d3) and d3 is not d1:
+                        cycle = {d1, d2, d3}
+                        
+                        if cycle not in self.cycles:
+                            self.cycles.append(cycle)
 class InOrder(Scheduler):
     ''' Perform transmission between disk in order present in list '''
+    def __init__(self, bypass):
+        Scheduler.__init__(self, bypass)
+        self.init = False
+
     def gen_edges(self, graph):
+        if not self.init:
+            for c in self.cycles:
+
+                cycle_list = list(c)
+                bypass_node = Bypass(1,1)
+
+                self.inactive_bypass_edges.append((cycle_list[0], bypass_node))
+                self.inactive_bypass_edges.append((cycle_list[1], bypass_node))
+
+            self.init = True
+            self.num_bypass = len(self.inactive_bypass_edges)
         return [e for e in graph.edges()]
 
     def do_work(self, graph, queue, verbose):
         working = []
+
+        # Off-load data on bypass nodes
+        for e in self.active_bypass_edges:
+
+            if e[0][0].avail and e[1].avail:
+                # Aqcuire cv resources
+                e[0][1].acquire()
+                e[1].acquire()
+
+                # Remove work
+                graph.remove_edge(e[0][0],e[1])
+
+                # Assign disk to active pool
+                working.append(e[0][1])
+                working.append(e[1])
+
+                if verbose:
+                    print("Bypass " + str(e[0]) + " transferring to Disk" + str(e[1]))
+
+            self.active_bypass_edges.clear()
         for e in queue:
-            if e[0].avail > 0 and e[1].avail > 0 and graph.has_edge(e[0], e[1]):
+            if e[0].avail and e[1].avail and graph.has_edge(e[0], e[1]):
                 if e[0] != e[1]:
                     # Aqcuire cv resources
                     e[0].acquire()
@@ -57,6 +111,27 @@ class InOrder(Scheduler):
                 if verbose:
                     print("Disk" + str(e[0]) + " transferring to Disk" + str(e[1]))
 
+        # Load data onto free bypass nodes if edge in cycle
+        if self.bypass:
+            # Get set of disk-disk edges not active
+            for e in self.inactive_bypass_edges:
+                for d in [d for d in graph.nodes() if d is not e[0]]:
+                    if graph.has_edge(e[0], d) and (d, e[1]) in self.inactive_bypass_edges:
+                        if e[0].avail and e[1].avail:
+                            # Aqcuire cv resources
+                            e[0].acquire()
+                            e[1].acquire()
+
+                            # Assign disk to active pool
+                            working.append(e[0])
+                            working.append(e[1])
+
+                            # Move active bypass edge to active pool
+                            self.active_bypass_edges.append((e, d))
+                            self.inactive_bypass_edges.remove(e)
+
+                            if verbose:
+                                print("Disk" + str(e[0]) + " transferring to Bypass" + str(d))
         # Free resources
         for w in working:
             w.free()
@@ -267,24 +342,3 @@ class Greedy(FlattenAndColor):
 
         # Reassociate aliases
         return [(e[0].org, e[1].org) for e in queue]
-
-class Bypass(FlattenAndColor):
-    ''' Testing class for bypass node functions '''
-    def do_work(self, graph, queue, verbose):
-        print(self.cycle3(graph))
-        graph.clear()
-
-    def cycle3(self, graph):
-        ''' Returns list of disk sets w/ 3-cycles '''
-        cycles = []
-
-        for d1 in graph.nodes():
-            for d2 in graph.neighbors(d1):
-                for d3 in graph.neighbors(d2):
-                    if graph.has_edge(d1,d3) and d3 is not d1:
-                        cycle = {d1, d2, d3}
-                        
-                        if cycle not in cycles:
-                            cycles.append(cycle)
-
-        return cycles
