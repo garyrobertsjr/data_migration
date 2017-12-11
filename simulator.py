@@ -1,13 +1,11 @@
 #!/bin/env python
 ''' Simulator.py '''
-from scheduler import InOrder, EdgeRanking, FlattenAndColor, Bipartite, Greedy, Bypass
-from disk import Disk
-from numpy.random import randint
-from math import floor
 import networkx as nx
 import matplotlib.pyplot as plt
 import datetime, random, argparse, os
-
+from math import floor
+from scheduler import InOrder, EdgeRanking, FlattenAndColor, Bipartite, Greedy
+from disk import Disk
 
 def generate_disks(n, rand_cv, static_cv, even_cv):
     ''' Populate disk list '''
@@ -28,13 +26,16 @@ def generate_disks(n, rand_cv, static_cv, even_cv):
 def main():
     ''' Parse CLI args and invoke simulator '''
     parser = argparse.ArgumentParser()
-    parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'edge_ranking', 'flatten_and_color', 'bipartite', 'greedy', 'bypass'])
+    parser.add_argument('scheduler', help='Specifiy scheduler algorithm', choices=['inorder', 'edge_ranking', 'flatten_and_color', 'bipartite', 'greedy'])
     parser.add_argument('--plot', help='Plot graph for each round.')
-    parser.add_argument('-v', help='Print debug info', default=False, action='store_true')
+    parser.add_argument('--v', help='Print debug info', default=False, action='store_true')
+    parser.add_argument('--bypass', help='Utilize bypass nodes', default=False, action='store_true')
+
     cv_g = parser.add_mutually_exclusive_group()
     cv_g.add_argument('--static_cv', help='Specifiy cv', type=int)
     cv_g.add_argument('--rand_cv', help='Specify max value for a random cv', type=int)
     cv_g.add_argument('--even_cv', help='Specify max value for a random but even cv', type=int)
+
     graph_g = parser.add_mutually_exclusive_group()
     graph_g.add_argument('--random', help='Random graph generation', type=int)
     graph_g.add_argument('--regular', help='Regular graph generation', type=int)
@@ -42,17 +43,15 @@ def main():
     args = parser.parse_args()
 
     if args.scheduler == 'inorder':
-        sched = InOrder()
+        sched = InOrder(args.bypass)
     elif args.scheduler == 'edge_ranking':
-        sched = EdgeRanking()
+        sched = EdgeRanking(args.bypass)
     elif args.scheduler == 'flatten_and_color':
         sched = FlattenAndColor()
     elif args.scheduler == 'bipartite':
         sched = Bipartite()
     elif args.scheduler == 'greedy':
         sched = Greedy()
-    elif args.scheduler == 'bypass':
-        sched = Bypass()
 
     timestamp = datetime.datetime.now().isoformat().replace(':', '_')
     os.makedirs(timestamp)
@@ -94,8 +93,7 @@ def main():
         disks = generate_disks(args.regular, args.rand_cv, args.static_cv, args.even_cv)
 
         # Generate random graph skeleton
-        #r = nx.random_regular_graph(args.regular-1, args.regular)
-        r = nx.complete_graph(args.regular, )
+        r = nx.complete_graph(args.regular)
 
         # Remap nodes to disks
         disk_map = {i:d for i,d in enumerate(disks)}
@@ -108,19 +106,22 @@ def main():
         # TODO: Naming schema
         nx.write_gpickle(g, timestamp + "/" + timestamp + ".gpickle")
 
-        nx.write_gpickle(g, "network.gpickle")
+        # Test script file write
+        #nx.write_gpickle(g, "network.gpickle")
     
     elif args.file:
         # Import graph pickle
         g = nx.read_gpickle(args.file)
-    
+
+    if args.bypass:
+        sched.cycle3(g)
+ 
     rounds = 1
     d_prime = sched.max_d(g)
 
     while g.edges():
         if args.v:
-            print("ROUND " + str(rounds))
-        
+            print('ROUND: {}'.format(rounds))
         if args.plot:
             plt.clf()
             nx.draw_networkx(g)
@@ -130,7 +131,7 @@ def main():
         sched.do_work(g, q, args.v)
         rounds += 1
 
-    print(timestamp + ' ' + str(rounds-1) + ' ' + str(d_prime))
+    print('{} {} {} {}'.format(timestamp, rounds-1, d_prime, sched.num_bypass))
     
 if __name__ == "__main__":
     main()
