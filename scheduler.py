@@ -321,6 +321,7 @@ class Bipartite(InOrder):
 class Greedy(FlattenAndColor):
     ''' Split disk Cv and return maximal matching each round '''
     def __init__(self):
+        FlattenAndColor.__init__(self)
         self.a_graph = None
 
     def do_work(self, graph, queue, verbose):
