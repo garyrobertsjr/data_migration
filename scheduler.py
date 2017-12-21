@@ -27,7 +27,7 @@ class Scheduler(ABC):
     def gen_edges(self, disks, graph):
         ''' Create list of edges '''
         pass
-        
+
     def max_d(self, graph):
         ''' Return max cv d prime '''
         degrees = graph.degree()
@@ -44,7 +44,7 @@ class Scheduler(ABC):
                 for d3 in graph.neighbors(d2):
                     if graph.has_edge(d1,d3) and d3 is not d1:
                         cycle = {d1, d2, d3}
-                        
+
                         if cycle not in self.cycles:
                             self.cycles.append(cycle)
 class InOrder(Scheduler):
@@ -139,8 +139,8 @@ class InOrder(Scheduler):
 class EdgeRanking(InOrder):
     ''' Performs transmission between disks using greedy alg to generate list of edges for InOrder '''
     def gen_edges(self, graph):
-        degrees = self.dv_cv(graph) 
-        
+        degrees = self.dv_cv(graph)
+
         # Compute dvcv weight of each edge
         weighted = [(degrees[edge[0]] + degrees[edge[1]], edge) for edge in graph.edges()]
 
@@ -156,6 +156,8 @@ class EdgeRanking(InOrder):
 class FlattenAndColor(InOrder):
     ''' Temp scheduler to test coloring '''
     def __init__(self):
+        # FlattenAndColor does not yet support Bypass nodes, so just hardcode bypass argument as False
+        InOrder.__init__(self, False)
         self.a_graph = None
         self.e_colors = None
 
@@ -178,7 +180,7 @@ class FlattenAndColor(InOrder):
             # Copy edges from original
             edges = graph.edges(d)
             alias_edges =[(disk_alias, Alias(e[1])) for e in edges]
-            
+
             # Add to alias graph
             a.add_node(disk_alias)
             a.add_edges_from(alias_edges)
@@ -197,7 +199,7 @@ class FlattenAndColor(InOrder):
             if d.org.cv > 1:
                 edges = self.a_graph.edges(d)
                 originals += self.a_graph.edges(d)
-                
+
                 # Create d.cv number of clones
                 clones = [Alias(d.org) for i in range(1,d.org.cv)]
 
@@ -211,7 +213,7 @@ class FlattenAndColor(InOrder):
 
         # Remove original edges for disks w/ cv > 1
         self.a_graph.remove_edges_from(originals)
-  
+
         return self.a_graph
 
     def greedy_color(self, graph):
@@ -272,7 +274,7 @@ class Bipartite(InOrder):
                 self.b.add_edge(e[0], v_in[e[1]], capacity=1)
 
                 if e[0].org is not e[1].org:
-                    c +=1 
+                    c +=1
 
             # Create s-node
             self.b.add_node('t')
@@ -290,7 +292,7 @@ class Bipartite(InOrder):
         # Extract active edges and cull self loops and s/t nodes
         flow = [(d[0], d2[0]) for d in flow_dict.items() for d2 in d[1].items() \
                 if d2[1] > 0 and d[0] not in ['s','t'] and d2[0] not in ['s','t']]
-        
+
         self.b.remove_edges_from(flow)
 
         # Reassociate aliases and return queue
@@ -301,7 +303,7 @@ class Bipartite(InOrder):
         delta_prime = self.max_d(graph)
 
         spares = []
-        for d in graph.nodes():            
+        for d in graph.nodes():
             while graph.degree(d) < (delta_prime*d.cv)-1:
                 graph.add_edge(d, d)
 
